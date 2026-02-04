@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Simulador ZapCred</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ─── variables ─── */
+:root {
+  --bg:          #0f1117;
+  --surface:     #1a1d26;
+  --surface2:    #232736;
+  --border:      #2e3345;
+  --text:        #e2e4ea;
+  --muted:       #7a7f99;
+  --accent:      #00e5a0;
+  --accent2:     #00c9ff;
+  --accent-dim:  rgba(0,229,160,.13);
+  --red:         #ff5c6b;
+}
+
+/* ─── reset ─── */
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { font-size:16px; -webkit-text-size-adjust:100%; }
+body {
+  font-family:'Inter',sans-serif;
+  background:var(--bg); color:var(--text);
+  min-height:100vh; overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ─── ambient glow ─── */
+.glow {
+  position:fixed; border-radius:50%;
+  filter:blur(100px); pointer-events:none; z-index:0; opacity:.15;
+}
+.glow--1 { width:380px;height:380px; background:var(--accent);  top:-150px;left:-120px; }
+.glow--2 { width:300px;height:300px; background:var(--accent2); bottom:-100px;right:-80px; }
+
+/* ─── layout ─── */
+.wrap { position:relative; z-index:1; max-width:560px; margin:0 auto; padding:44px 18px 80px; }
+
+/* ─── header ─── */
+.header { text-align:center; margin-bottom:30px; }
+.badge {
+  display:inline-block;
+  font-family:'Syne',sans-serif;
+  font-size:.68rem; font-weight:700; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--accent); background:var(--accent-dim);
+  padding:5px 15px; border-radius:30px; margin-bottom:12px;
+}
+.header h1 {
+  font-family:'Syne',sans-serif; font-size:2.4rem; font-weight:800; line-height:1.1;
+  background:linear-gradient(135deg,#fff 25%,var(--accent));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.header p { color:var(--muted); margin-top:6px; font-size:.9rem; }
+
+/* ─── modo pills ─── */
+.pills {
+  display:flex; gap:5px;
+  background:var(--surface); border-radius:14px; padding:5px;
+  margin-bottom:22px;
+}
+.pills button {
+  flex:1; padding:12px 0; border:none; border-radius:10px;
+  font-family:'Inter',sans-serif; font-size:.82rem; font-weight:600;
+  background:transparent; color:var(--muted); cursor:pointer;
+  transition:all .22s; -webkit-tap-highlight-color:transparent;
+}
+.pills button.on {
+  background:var(--accent); color:#0f1117;
+  box-shadow:0 2px 14px rgba(0,229,160,.3);
+}
+
+/* ─── card ─── */
+.card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:18px; padding:22px 18px; margin-bottom:14px;
+}
+
+/* ─── label ─── */
+.lbl {
+  font-size:.72rem; font-weight:600; letter-spacing:.11em;
+  text-transform:uppercase; color:var(--muted); margin-bottom:8px; display:block;
+}
+
+/* ─── input valor ─── */
+.input-wrap { position:relative; }
+.input-wrap .pfx {
+  position:absolute; left:14px; top:50%; transform:translateY(-50%);
+  font-weight:600; color:var(--accent); font-size:.95rem; pointer-events:none;
+}
+.input-wrap input {
+  width:100%; padding:14px 16px 14px 40px;
+  background:var(--surface2); border:1px solid var(--border); border-radius:12px;
+  color:var(--text); font-family:'Syne',sans-serif;
+  font-size:1.5rem; font-weight:700; outline:none;
+  transition:border-color .2s;
+}
+.input-wrap input:focus { border-color:var(--accent); }
+.input-wrap input::placeholder { color:var(--muted); font-weight:400; font-size:1.1rem; }
+
+/* ─── bandeira grid ─── */
+.bandeira-grid {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px; margin-top:6px;
+}
+.bandeira-grid button {
+  padding:10px 4px;
+  background:var(--surface2);
+  border:1px solid var(--border); border-radius:10px;
+  color:var(--muted); font-family:'Inter',sans-serif;
+  font-size:.78rem; font-weight:600;
+  cursor:pointer; transition:all .17s;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+  display:flex; align-items:center; justify-content:center; gap:5px;
+}
+.bandeira-grid button:active { transform:scale(.94); }
+.bandeira-grid button.on {
+  border-color:var(--accent);
+  background:var(--accent-dim);
+  color:var(--text);
+  box-shadow:0 2px 10px rgba(0,229,160,.2);
+}
+.bandeira-grid button .flag-ico { font-size:1.1rem; line-height:1; }
+
+/* ─── parcelas grid ─── */
+.grid {
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:6px; margin-top:6px;
+}
+.grid button {
+  padding:13px 2px;
+  background:var(--surface2);
+  border:1px solid var(--border); border-radius:10px;
+  color:var(--muted); font-family:'Inter',sans-serif;
+  font-size:.84rem; font-weight:600;
+  cursor:pointer; transition:all .17s;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.grid button:active { transform:scale(.93); }
+.grid button.on {
+  background:var(--accent); border-color:var(--accent);
+  color:#0f1117; box-shadow:0 2px 10px rgba(0,229,160,.28);
+}
+
+/* ─── btn todas ─── */
+.btn-todas {
+  display:block; width:100%; margin-top:10px;
+  padding:13px; background:transparent;
+  border:1px dashed var(--border); border-radius:10px;
+  color:var(--muted); font-family:'Inter',sans-serif;
+  font-size:.84rem; font-weight:500; cursor:pointer;
+  transition:all .2s;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.btn-todas:active { border-color:var(--accent2); color:var(--accent2); }
+
+/* ─── erro ─── */
+.erro {
+  background:rgba(255,92,107,.1); border:1px solid rgba(255,92,107,.3);
+  border-radius:10px; padding:12px 15px;
+  color:var(--red); font-size:.85rem;
+  margin-bottom:14px; display:none;
+}
+.erro.on { display:block; }
+
+/* ─── resultado ─── */
+.res {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:18px; padding:22px 18px;
+  display:none;
+}
+.res.on { display:block; animation:up .28s ease; }
+@keyframes up { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+
+/* ─── resultado — cabeçalho com bandeira ─── */
+.res__head {
+  display:flex; align-items:center; gap:12px;
+  margin-bottom:18px;
+  padding-bottom:16px;
+  border-bottom:1px solid var(--border);
+}
+.res__head .flag-big { font-size:2.2rem; line-height:1; }
+.res__head .flag-info { display:flex; flex-direction:column; }
+.res__head .flag-nome {
+  font-family:'Syne',sans-serif; font-weight:700; font-size:1.15rem; color:var(--text);
+}
+.res__head .flag-sub {
+  font-size:.75rem; color:var(--muted); margin-top:2px;
+  text-transform:uppercase; letter-spacing:.08em;
+}
+
+/* ─── resultado — rows ─── */
+.row {
+  display:flex; justify-content:space-between; align-items:baseline;
+  padding:11px 0; border-bottom:1px solid var(--border);
+}
+.row:last-child { border-bottom:none; }
+.row .l { color:var(--muted); font-size:.9rem; }
+.row .v { font-family:'Syne',sans-serif; font-weight:700; font-size:1.05rem; }
+.row.hi .l { color:var(--text); font-weight:600; }
+.row.hi .v { color:var(--accent); font-size:1.22rem; }
+
+/* ─── botão copiar ─── */
+.btn-copiar {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; margin-top:18px;
+  padding:14px; border:none; border-radius:12px;
+  background:linear-gradient(135deg,var(--accent),#00c9a7);
+  color:#0f1117; font-family:'Inter',sans-serif;
+  font-size:.88rem; font-weight:700;
+  cursor:pointer; transition:all .2s;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+  letter-spacing:.03em;
+}
+.btn-copiar:active { transform:scale(.96); filter:brightness(.9); }
+.btn-copiar svg { width:18px; height:18px; }
+
+/* toast "copiado" */
+.toast {
+  position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(80px);
+  background:#fff; color:#0f1117;
+  padding:10px 22px; border-radius:30px;
+  font-family:'Inter',sans-serif; font-size:.84rem; font-weight:600;
+  box-shadow:0 4px 18px rgba(0,0,0,.35);
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  z-index:999; pointer-events:none; white-space:nowrap;
+}
+.toast.on { transform:translateX(-50%) translateY(0); }
+
+/* ─── resultado — cards (todas parcelas, celular) ─── */
+.cards { display:flex; flex-direction:column; gap:8px; }
+.pcard {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:12px; padding:12px 14px;
+  display:grid;
+  grid-template-columns:auto 1fr 1fr;
+  gap:4px 12px; align-items:center;
+}
+.pcard .pc-n {
+  font-family:'Syne',sans-serif; font-weight:700;
+  color:var(--accent); font-size:1rem;
+  grid-row:1/3;
+}
+.pcard .pc-label { font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+.pcard .pc-val   { font-size:.92rem; font-weight:600; color:var(--text); }
+.pcard.best { border-color:var(--accent); background:var(--accent-dim); }
+.pcard.best .pc-n::after { content:' ⭐'; font-size:.72rem; }
+
+/* ─── tabela (desktop) ─── */
+.tabela-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+table { width:100%; border-collapse:collapse; font-size:.84rem; }
+thead th {
+  text-align:right; padding:8px 8px;
+  font-size:.66rem; font-weight:600; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted);
+  border-bottom:1px solid var(--border);
+}
+thead th:first-child { text-align:left; }
+tbody td {
+  padding:8px 8px; border-bottom:1px solid rgba(255,255,255,.06);
+  text-align:right; color:var(--text);
+}
+tbody td:first-child { text-align:left; font-weight:600; color:var(--accent); }
+tbody tr.best td:first-child::after { content:' ⭐'; font-size:.7rem; }
+
+/* ─── responsive ─── */
+@media(max-width:420px) {
+  .wrap      { padding:34px 14px 80px; }
+  .header h1 { font-size:2rem; }
+  .card      { padding:18px 14px; }
+  .grid button { padding:12px 0; font-size:.8rem; }
+  .input-wrap input { font-size:1.3rem; }
+  .pills button { font-size:.78rem; padding:10px 0; }
+  .bandeira-grid button { font-size:.74rem; padding:9px 2px; }
+}
+
+.cards       { display:flex; }
+.tabela-wrap { display:none; }
+@media(min-width:580px) {
+  .cards       { display:none; }
+  .tabela-wrap { display:block; }
+}
+</style>
+</head>
+<body>
+
+<div class="glow glow--1"></div>
+<div class="glow glow--2"></div>
+
+<!-- toast -->
+<div class="toast" id="toast">✅ Copiado!</div>
+
+<div class="wrap">
+
+  <header class="header">
+    <div class="badge">Sistema de Simulação</div>
+    <h1>Simulador ZapCred</h1>
+    <p>Calcula valores de crédito em segundos</p>
+  </header>
+
+  <!-- modo -->
+  <div class="pills">
+    <button class="on" data-modo="liberado">📊 Liberado</button>
+    <button          data-modo="limite">💳 Limite</button>
+  </div>
+
+  <!-- entrada -->
+  <div class="card">
+
+    <!-- bandeira -->
+    <label class="lbl">Bandeira do Cartão</label>
+    <div class="bandeira-grid" id="bandeiraGrid"></div>
+
+    <!-- valor -->
+    <label class="lbl" id="valorLbl" style="margin-top:20px">Valor Líquido</label>
+    <div class="input-wrap">
+      <span class="pfx">R$</span>
+      <input type="text" inputmode="decimal" id="valorInput" placeholder="0,00" autocomplete="off">
+    </div>
+
+    <!-- parcelas -->
+    <label class="lbl" style="margin-top:20px">Número de parcelas</label>
+    <div class="grid" id="grid"></div>
+    <button class="btn-todas" id="btnTodas">📊 Ver todas as parcelas</button>
+  </div>
+
+  <!-- erro -->
+  <div class="erro" id="erro"></div>
+
+  <!-- resultado individual -->
+  <div class="res" id="resInd"></div>
+
+  <!-- resultado todas -->
+  <div class="res" id="resTodas"></div>
+
+</div>
+
+<script>
+/* ═══ TAXAS (exatas do Excel) ═══ */
+const TL=[null,.10725,.11497,.12012,.12785,.1329,.14072,.14588,.15102,.15309,.1638,.17162,.17576,.19995,.2051,.21015,.2154,.2257,.23966];
+const TM=[null,
+  {a:.0399,b:.05356},{a:.0483,b:.05563},{a:.0548,b:.05325},{a:.0612,b:.05296},
+  {a:.0676,b:.0505},{a:.0739,b:.05026},{a:.0821,b:.04599},{a:.0883,b:.0437},
+  {a:.0944,b:.04146},{a:.0999,b:.04162},{a:.1065,b:.04076},{a:.1125,b:.04027},
+  {a:.1264,b:.04098},{a:.1323,b:.03865},{a:.1381,b:.0363},{a:.1439,b:.03407},
+  {a:.1496,b:.03539},{a:.1553,b:.03631}
+];
+
+/* ═══ bandeiras ═══ */
+const BANDEIRAS = [
+  { id:'visa',       nome:'Visa',       ico:'💳' },
+  { id:'mastercard', nome:'Mastercard', ico:'💳' },
+  { id:'amex',       nome:'Amex',       ico:'💳' },
+  { id:'elo',        nome:'Elo',        ico:'💳' },
+  { id:'hipercard',  nome:'Hipercard',  ico:'💳' },
+  { id:'diners',     nome:'Diners',     ico:'💳' },
+];
+
+/* ═══ state ═══ */
+let modo = 'liberado', sel = null, bandeiraEscolhida = null;
+
+/* ═══ utils ═══ */
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+function parse(raw) {
+  let s = raw.trim().replace(/[^\d.,]/g,'');
+  if (!s) return NaN;
+  if (s.includes('.')&&s.includes(',')) s=s.replace(/\./g,'').replace(',','.');
+  else if (s.includes(',')) s=s.replace(',','.');
+  return parseFloat(s);
+}
+
+/* ═══ calc ═══ */
+function cLib(v,p){ const t=TL[p],vv=v*(1+t); return {vl:v,p,vv,pc:vv/p,t,j:vv-v}; }
+function cLim(v,p){ const {a,b}=TM[p],liq=v*(1-a-b); return {vlim:v,p,liq,pc:v/p,a,b,d:v-liq}; }
+
+/* ═══ render bandeiras ═══ */
+function renderBandeiras(){
+  const g=$('bandeiraGrid'); g.innerHTML='';
+  BANDEIRAS.forEach(b=>{
+    const btn=document.createElement('button');
+    btn.innerHTML=`<span class="flag-ico">${b.ico}</span>${b.nome}`;
+    if(bandeiraEscolhida===b.id) btn.classList.add('on');
+    btn.addEventListener('click',()=>{ bandeiraEscolhida=b.id; renderBandeiras(); simular(); });
+    g.appendChild(btn);
+  });
+}
+
+/* ═══ render parcelas ═══ */
+function renderGrid(){
+  const g=$('grid'); g.innerHTML='';
+  for(let i=1;i<=18;i++){
+    const btn=document.createElement('button');
+    btn.textContent=i+'x';
+    if(i===sel) btn.classList.add('on');
+    btn.addEventListener('click',()=>{ sel=i; renderGrid(); simular(); });
+    g.appendChild(btn);
+  }
+}
+
+/* ═══ show / hide ═══ */
+function hide(){ $('resInd').classList.remove('on'); $('resTodas').classList.remove('on'); }
+function hideErr(){ $('erro').classList.remove('on'); }
+function showErr(m){ $('erro').textContent='⚠️  '+m; $('erro').classList.add('on'); hide(); }
+
+/* ═══ toast ═══ */
+function showToast(){
+  const t=$('toast');
+  t.classList.add('on');
+  setTimeout(()=>t.classList.remove('on'),1600);
+}
+
+/* ═══ copiar para clipboard ═══ */
+function copiarSimulacao(texto){
+  // tenta clipboard API primeiro; fallback execCommand
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(texto).then(showToast).catch(()=>fallbackCopy(texto));
+  } else { fallbackCopy(texto); }
+}
+function fallbackCopy(texto){
+  const ta=document.createElement('textarea');
+  ta.value=texto;
+  ta.style.cssText='position:fixed;left:-9999px;top:-9999px;opacity:0;';
+  document.body.appendChild(ta);
+  ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+  showToast();
+}
+
+/* ═══ monta texto para copiar ═══ */
+function montaTexto(dados){
+  // dados = { bandeira, valorLiberado, prazo, parcela, total }
+  return [
+    '─── Simulador ZapCred ───',
+    `Bandeira : ${dados.bandeira}`,
+    `Valor Liberado : R$ ${fmt(dados.valorLiberado)}`,
+    `Prazo : ${dados.prazo}x`,
+    `Valor da Parcela : R$ ${fmt(dados.parcela)}`,
+    `Total : R$ ${fmt(dados.total)}`,
+    '──────────────────────',
+  ].join('\n');
+}
+
+/* ═══ botão copiar HTML ═══ */
+const COPY_BTN = `
+<button class="btn-copiar" id="btnCopiar">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+  </svg>
+  Copiar Simulação
+</button>`;
+
+/* ═══ simular (individual) ═══ */
+function simular(){
+  hideErr(); hide();
+  const v = parse($('valorInput').value);
+  if(isNaN(v)||v<=0||!sel) return;
+
+  // precisa de bandeira selecionada
+  if(!bandeiraEscolhida){
+    showErr('Selecione a bandeira do cartão.');
+    return;
+  }
+
+  const bNome = BANDEIRAS.find(b=>b.id===bandeiraEscolhida);
+  const bIco  = bNome.ico;
+  const bTxt  = bNome.nome;
+
+  let valorLiberado, prazo, parcela, total;
+
+  if(modo==='liberado'){
+    const r = cLib(v, sel);
+    valorLiberado = r.vl;   // valor líquido = valor liberado ao cliente
+    prazo         = r.p;
+    parcela       = r.pc;
+    total         = r.vv;   // valor de venda = total que o cliente paga
+  } else {
+    const r = cLim(v, sel);
+    valorLiberado = r.liq;  // valor líquido = valor liberado ao cliente
+    prazo         = r.p;
+    parcela       = r.pc;
+    total         = r.vlim; // valor limite = total que o cliente paga
+  }
+
+  const dados = { bandeira: bTxt, valorLiberado, prazo, parcela, total };
+
+  const html = `
+    <div class="res__head">
+      <span class="flag-big">${bIco}</span>
+      <div class="flag-info">
+        <span class="flag-nome">${bTxt}</span>
+        <span class="flag-sub">Simulador ${modo==='liberado'?'Liberado':'Limite'}</span>
+      </div>
+    </div>
+    <div class="row hi">   <span class="l">Valor Liberado</span>  <span class="v">R$ ${fmt(valorLiberado)}</span></div>
+    <div class="row">      <span class="l">Prazo</span>            <span class="v">${prazo}x</span></div>
+    <div class="row hi">   <span class="l">Valor da Parcela</span><span class="v">R$ ${fmt(parcela)}</span></div>
+    <div class="row hi">   <span class="l">Total</span>            <span class="v">R$ ${fmt(total)}</span></div>
+    ${COPY_BTN}
+  `;
+
+  const el=$('resInd');
+  el.innerHTML=html;
+  el.classList.add('on');
+
+  // evento copiar
+  el.querySelector('#btnCopiar').addEventListener('click',()=> copiarSimulacao(montaTexto(dados)));
+
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+/* ═══ simular todas ═══ */
+function simularTodas(){
+  hideErr(); hide();
+  const v = parse($('valorInput').value);
+  if(isNaN(v)||v<=0){ showErr('Digite um valor válido antes de simular.'); return; }
+  if(!bandeiraEscolhida){ showErr('Selecione a bandeira do cartão.'); return; }
+
+  let cards='', rows='';
+
+  if(modo==='liberado'){
+    for(let i=1;i<=18;i++){
+      const r=cLib(v,i);
+      const best=(i===18)?'best':'';
+      cards+=`<div class="pcard ${best}">
+        <span class="pc-n">${i}x</span>
+        <span class="pc-label">Valor Venda</span><span class="pc-val">R$ ${fmt(r.vv)}</span>
+        <span class="pc-label">Parcela</span>    <span class="pc-val">R$ ${fmt(r.pc)}</span>
+      </div>`;
+      rows+=`<tr class="${best}"><td>${i}x</td><td>R$ ${fmt(r.vv)}</td><td>R$ ${fmt(r.pc)}</td><td>${(r.t*100).toFixed(3)}%</td><td>R$ ${fmt(r.j)}</td></tr>`;
+    }
+  } else {
+    for(let i=1;i<=18;i++){
+      const r=cLim(v,i);
+      const best=(i===1)?'best':'';
+      cards+=`<div class="pcard ${best}">
+        <span class="pc-n">${i}x</span>
+        <span class="pc-label">Líquido</span>  <span class="pc-val">R$ ${fmt(r.liq)}</span>
+        <span class="pc-label">Parcela</span>  <span class="pc-val">R$ ${fmt(r.pc)}</span>
+      </div>`;
+      rows+=`<tr class="${best}"><td>${i}x</td><td>R$ ${fmt(r.liq)}</td><td>R$ ${fmt(r.pc)}</td><td>${(r.a*100).toFixed(2)}%</td><td>${(r.b*100).toFixed(3)}%</td><td>R$ ${fmt(r.d)}</td></tr>`;
+    }
+  }
+
+  const bNome = BANDEIRAS.find(b=>b.id===bandeiraEscolhida).nome;
+  const titulo = modo==='liberado'
+    ? `Todas as parcelas — Liberado &nbsp;·&nbsp; Líquido: R$ ${fmt(v)}`
+    : `Todas as parcelas — Limite &nbsp;·&nbsp; Limite: R$ ${fmt(v)}`;
+  const theadLib = '<th style="text-align:left">Parc.</th><th>Valor Venda</th><th>Parcela</th><th>Taxa</th><th>Juros</th>';
+  const theadLim = '<th style="text-align:left">Parc.</th><th>Líquido</th><th>Parcela</th><th>Taxa 1</th><th>Taxa 2</th><th>Desc.</th>';
+
+  const el=$('resTodas');
+  el.innerHTML=`
+    <div class="res__head">
+      <span class="flag-big">${BANDEIRAS.find(b=>b.id===bandeiraEscolhida).ico}</span>
+      <div class="flag-info">
+        <span class="flag-nome">${bNome}</span>
+        <span class="flag-sub">Todas as parcelas</span>
+      </div>
+    </div>
+    <div class="cards">${cards}</div>
+    <div class="tabela-wrap"><table>
+      <thead><tr>${modo==='liberado'?theadLib:theadLim}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  el.classList.add('on');
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+/* ═══ eventos ═══ */
+document.querySelectorAll('.pills button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    modo=btn.dataset.modo;
+    document.querySelectorAll('.pills button').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+    $('valorLbl').textContent = modo==='liberado' ? 'Valor Líquido' : 'Valor Limite';
+    sel=null; renderGrid(); hide(); hideErr();
+  });
+});
+
+$('valorInput').addEventListener('input',()=>{ hideErr(); simular(); });
+$('btnTodas').addEventListener('click', simularTodas);
+
+renderBandeiras();
+renderGrid();
+</script>
+</body>
+</html>
